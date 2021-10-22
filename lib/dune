@@ -1,0 +1,5 @@
+(library
+ (name chain)
+ (libraries sha dream yojson uuidm)
+ (preprocess 
+  (staged_pps ppx_import lwt_ppx ppx_yojson_conv)))
