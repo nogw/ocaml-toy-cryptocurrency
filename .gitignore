@@ -1,5 +1,10 @@
 # ocamlbuild working directory
 _build/
+_esy/
+.vscode
+esy.lock
+node_modules
+.dune-project
 
 # Merlin configuring file for Vim and Emacs
 .merlin

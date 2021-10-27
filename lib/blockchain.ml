@@ -45,6 +45,11 @@ let data_of block =
   | GenesisBlock b -> b.data
   | Block b -> b.data
 
+let previous_of block =
+  match block with
+  | GenesisBlock _ -> failwith "Error: tried to obtain previous hash of genesis block"
+  | Block b -> b.previous_block
+
 let hash_block index timestamp ?(previous_hash = "") data =
   [ string_of_int index;
     Unix.mktime timestamp |> fst |> string_of_float;
@@ -74,9 +79,9 @@ let add_next_block data previous_block =
 
 let validate_next_block block =
   match block with
-  | GenesisBlock -> true
+  | GenesisBlock _ -> true
   | Block b -> 
-    let previous_hash = hash_of (previous_block block) in
+    let previous_hash = hash_of (previous_of block) in
     let hash = hash_block b.index b.timestamp ~previous_hash b.data in
     let previous_index = 
       match b.previous_block with 
