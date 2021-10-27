@@ -52,6 +52,15 @@ let hash_block index timestamp ?(previous_hash = "") data =
     previous_hash
   ] |> String.concat "" |> Sha256.string |> Sha256.to_hex
 
+let initial_block data = 
+  let timestamp = Unix.time () |> Unix.gmtime in
+  GenesisBlock {
+    index = 0;
+    hash = hash_block 0 timestamp data;
+    timestamp;
+    data;
+  }  
+
 let add_next_block data previous_block = 
   let timestamp = Unix.time () |> Unix.gmtime
   and index = index_of previous_block + 1 in
@@ -62,3 +71,30 @@ let add_next_block data previous_block =
     data;
     previous_block;
   }
+
+let validate_next_block block =
+  match block with
+  | GenesisBlock -> true
+  | Block b -> 
+    let previous_hash = hash_of (previous_block block) in
+    let hash = hash_block b.index b.timestamp ~previous_hash b.data in
+    let previous_index = 
+      match b.previous_block with 
+      | GenesisBlock pb -> pb.index
+      | Block pb -> pb.index
+    in
+      b.index = previous_index + 1 && hash = b.hash 
+
+let validate_chain chain = 
+  let rec aux chain' res = 
+    match (chain', res) with
+    | _, false -> false
+    | GenesisBlock _, _ -> true
+    | Block c, _  -> aux c.previous_block (validate_next_block chain')
+  in
+    aux chain true
+
+let replace new_chain chain =
+  if index_of new_chain > index_of chain && validate_chain new_chain then 
+    new_chain
+  else chain
