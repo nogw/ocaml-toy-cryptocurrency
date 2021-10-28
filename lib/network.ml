@@ -5,7 +5,10 @@ type message =
   | ResponseBlockchain of string
   [@@deriving yojson]
 
+type uuid = string [@@deriving yojson]
+
 type peer = {
+  id: uuid;
   socket: Dream.websocket;
   connection_time: float
 }
@@ -25,7 +28,7 @@ let broadcast peers message =
   List.iter (fun peer -> write peer message |> ignore) peers
 
 let chain_message b = 
-  let data = c 
+  let data = b 
     |> yojson_of_block
     |> Yojson.Safe.to_string 
   in ResponseBlockchain data
@@ -43,7 +46,7 @@ let handle_blockchain_response state received =
     state.chain
 
 let init_message_handle state peer =
-  match%lwt Dream.received peer.socket with
+  match%lwt Dream.receive peer.socket with
   | Some m -> 
       let message = m 
         |> Yojson.Safe.from_string
@@ -60,8 +63,8 @@ let init_message_handle state peer =
             Lwt.return_unit
         end
   | None -> state.peers <- List.filter ( 
-      fun { socket = _; connection_time } -> connection_time <> peer.connection_time 
-    ) state.chain;
+      fun s -> s.connection_time <> peer.connection_time 
+    ) state.peers;
     Dream.close_websocket peer.socket
 
 let init_connection state peer =
@@ -74,13 +77,14 @@ let init_connection state peer =
 
 let init_p2p_server state =
   Dream.websocket (
-    fun ws -> {
-      { socket = ws; connection_time = Unix.time () }
-      |> init_connection state 
-    }
+    fun ws -> 
+      { id = Uuidm.create (`V4) |> Uuidm.to_string;
+        socket = ws; 
+        connection_time = Unix.time () 
+      } |> init_connection state 
   )
 
-let init_server port =
+let init_server state port =
   Dream.run ~port
   @@ Dream.logger
   @@ Dream.router [
@@ -104,10 +108,10 @@ let init_server port =
     Dream.post "/mineRawBlock" 
       (fun _ -> Dream.html ("."));
     Dream.post "/mineBlock" (
-      fun _ -> 
+      fun req -> 
       let%lwt body = Dream.body req in
-      store.chain <- add_next_block body store.chain;
-      store.chain
+      state.chain <- add_next_block body state.chain;
+      state.chain
       |> yojson_of_block
       |> Yojson.Safe.to_string
       |> Dream.json
@@ -122,8 +126,14 @@ let init_server port =
       (fun _ -> Dream.html ("."));
     Dream.get  "/transactionPool" 
       (fun _ -> Dream.html ("."));
-    Dream.get  "/peers" 
-      (fun _ -> Dream.html ("."));
+    Dream.get  "/peers" (
+      fun _ ->
+        state.peers
+        |> List.map ( fun peer -> peer.id )
+        |> [%yojson_of: uuid list]
+        |> Yojson.Safe.to_string
+        |> Dream.json 
+    );
     Dream.post "/addPeer" ( fun _ -> init_p2p_server state );
     Dream.post "/stop" 
       (fun _ -> Dream.html ("."));
