@@ -67,6 +67,9 @@ let validate_next_block block =
     in
       b.index = previous_index + 1 && hash = b.hash 
 
+let hash_matches_difficulty hash difficulty =
+  let hash_binary = hex_to_bin hash in
+
 let validate_chain chain = 
   let rec aux chain' res = 
     match (chain', res) with
