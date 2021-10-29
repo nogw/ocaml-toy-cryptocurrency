@@ -1,3 +1,5 @@
+open Utils
+
 type timestamp = [%import: Unix.tm] [@@deriving yojson]
 
 type block = 
@@ -24,31 +26,6 @@ let block index hash timestamp data previous_block =
     data;
     previous_block;
   }
-
-let index_of block =
-  match block with
-  | GenesisBlock b -> b.index
-  | Block b -> b.index
-
-let hash_of block =
-  match block with
-  | GenesisBlock b -> b.hash
-  | Block b -> b.hash
-
-let timestamp_of block =
-  match block with
-  | GenesisBlock b -> b.timestamp
-  | Block b -> b.timestamp
-
-let data_of block =
-  match block with
-  | GenesisBlock b -> b.data
-  | Block b -> b.data
-
-let previous_of block =
-  match block with
-  | GenesisBlock _ -> failwith "Error: tried to obtain previous hash of genesis block"
-  | Block b -> b.previous_block
 
 let hash_block index timestamp ?(previous_hash = "") data =
   [ string_of_int index;

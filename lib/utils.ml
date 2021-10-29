@@ -12,3 +12,28 @@ let hex_to_bin s =
     else aux l (succ i) (bin s.[i]) ^ acc
   in
     aux (String.length s) 0 "";;
+
+let index_of block =
+  match block with
+  | GenesisBlock b -> b.index
+  | Block b -> b.index
+
+let hash_of block =
+  match block with
+  | GenesisBlock b -> b.hash
+  | Block b -> b.hash
+
+let timestamp_of block =
+  match block with
+  | GenesisBlock b -> b.timestamp
+  | Block b -> b.timestamp
+
+let data_of block =
+  match block with
+  | GenesisBlock b -> b.data
+  | Block b -> b.data
+
+let previous_of block =
+  match block with
+  | GenesisBlock _ -> failwith "Error: tried to obtain previous hash of genesis block"
+  | Block b -> b.previous_block
